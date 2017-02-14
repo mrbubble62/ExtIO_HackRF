@@ -1,4 +1,4 @@
-﻿#include "ExtIO_HackRF.h"
+#include "ExtIO_HackRF.h"
 #include "resource.h"
 //---------------------------------------------------------------------------
 // #define WIN32_LEAN_AND_MEAN             // Selten verwendete Teile der Windows-Header nicht einbinden.
@@ -54,6 +54,7 @@ int64_t	glLOfreq = 101700000L;//Default 101.7Mhz
 bool gbExit = false;
 
 int amp = 0;
+int ant = 0;
 unsigned int lna_gain = 16, vga_gain = 16;
 HANDLE bandwidth_thread;
 clock_t time_start, time_now;
@@ -249,7 +250,21 @@ static INT_PTR CALLBACK MainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPAR
 						}
 						return TRUE;
 		}
-
+		case IDC_ANT:
+				{
+						if (Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED) //it is checked
+						{
+							ant = 1;
+							hackrf_set_antenna_enable(device, ant);
+						}
+						else //it has been unchecked
+						{
+							ant = 0;
+							hackrf_set_antenna_enable(device, ant);
+						}
+						return TRUE;
+				}
+		
 		}
 		break;
 
@@ -382,6 +397,7 @@ int64_t  EXTIO_API StartHW64(int64_t LOfreq)
 	hackrf_set_lna_gain(device, lna_gain);
 	hackrf_set_vga_gain(device, vga_gain);
 	hackrf_set_amp_enable(device, amp);
+	hackrf_set_antenna_enable(device, ant);
 	result = hackrf_start_rx(device, hackrf_rx_callback, NULL);
 	if (result != HACKRF_SUCCESS) {
 		MessageBox(NULL, TEXT("hackrf_start_rx Failed"), NULL, MB_OK);
@@ -647,8 +663,11 @@ int  EXTIO_API ExtIoGetSetting(int idx, char * description, char * value)
 		_snprintf(value, 1024, "%d", SendMessage(GetDlgItem(h_dialog, IDC_VGA), TBM_GETPOS, (WPARAM)0, (LPARAM)0));
 		return 0;
 	}
-	case 3:	{_snprintf(description, 1024, "%s", "APM");
+	case 3:	{_snprintf(description, 1024, "%s", "AMP");
 		_snprintf(value, 1024, "%d", Button_GetCheck(GetDlgItem(h_dialog, IDC_AMP)) == BST_CHECKED ? 1 : 0);
+		return 0;
+	}
+		_snprintf(value, 1024, "%d", Button_GetCheck(GetDlgItem(h_dialog, IDC_ANT)) == BST_CHECKED ? 1 : 0);
 		return 0;
 	}
 	default:	return -1;	// ERROR
@@ -684,6 +703,11 @@ void EXTIO_API ExtIoSetSetting(int idx, const char * value)
 	case 3:	{
 		tempInt = atoi(value);
 		amp = tempInt;
+		break;
+	}
+	case 4:	{
+		tempInt = atoi(value);
+		ant = tempInt;
 		break;
 	}
 	}
